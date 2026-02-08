@@ -35,6 +35,21 @@ export class AssetLoader {
     });
   }
 
+  async loadEnemyModel(type) {
+    const paths = {
+      CRAWLER: '/assets/models/crawler.glb',
+      TANK: '/assets/models/tank.glb',
+      FLYER: '/assets/models/flyer.glb'
+    };
+
+    const path = paths[type];
+    try {
+      return await this.loadGLB(path);
+    } catch (e) {
+      throw new Error(`Failed to load enemy model: ${type}`);
+    }
+  }
+
   async loadHeadOccluder(path = '/assets/models/headOccluder.glb') {
     try {
       const model = await this.loadGLB(path);

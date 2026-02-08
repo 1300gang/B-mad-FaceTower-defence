@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MindARThree } from 'mind-ar/dist/mindar-face-three.prod.js';
 import { AssetLoader } from './AssetLoader.js';
+import { EnemySystem } from '../systems/EnemySystem.js';
 
 export class GameManager {
   constructor() {
@@ -10,6 +11,9 @@ export class GameManager {
     this.renderer = null;
     this.assetLoader = new AssetLoader();
     this.anchors = [];
+    this.enemySystem = null;
+    this.lastTime = 0;
+    this.headOccluder = null;
   }
 
   async init() {
@@ -32,6 +36,9 @@ export class GameManager {
     // Story A.2: Head Occluder Setup
     await this.setupHeadOccluder();
 
+    // Story B.1: Enemy System Setup
+    this.enemySystem = new EnemySystem(this.scene, this.headOccluder, this.assetLoader);
+
     // Story A.1: Test Scene
     this.setupTestScene();
   }
@@ -41,14 +48,11 @@ export class GameManager {
     const faceMesh = this.mindarThree.addFaceMesh();
     faceMesh.material.colorWrite = false;
     faceMesh.visible = true;
-    // faceMesh is already added to scene by mind-ar usually,
-    // but we can ensure it's there if needed.
-    // In mind-ar-three, addFaceMesh returns the mesh and handles it.
 
     // External head occluder model
-    const headOccluder = await this.assetLoader.loadHeadOccluder();
+    this.headOccluder = await this.assetLoader.loadHeadOccluder();
     const headAnchor = this.mindarThree.addAnchor(168); // Forehead
-    headAnchor.group.add(headOccluder);
+    headAnchor.group.add(this.headOccluder);
   }
 
   setupTestScene() {
@@ -63,6 +67,7 @@ export class GameManager {
   async start() {
     try {
       await this.mindarThree.start();
+      this.lastTime = performance.now();
       this.renderer.setAnimationLoop(this.update.bind(this));
       console.log("MindAR started successfully");
       document.querySelector("#loading-screen").style.display = "none";
@@ -73,6 +78,14 @@ export class GameManager {
   }
 
   update() {
+    const currentTime = performance.now();
+    const deltaTime = (currentTime - this.lastTime) / 1000;
+    this.lastTime = currentTime;
+
+    if (this.enemySystem) {
+      this.enemySystem.update(deltaTime);
+    }
+
     this.renderer.render(this.scene, this.camera);
   }
 
