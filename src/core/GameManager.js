@@ -6,6 +6,9 @@ import { EconomySystem } from '../systems/EconomySystem.js';
 import { HealthSystem } from '../systems/HealthSystem.js';
 import { TowerSystem } from '../systems/TowerSystem.js';
 import { TowerType } from './Tower.js';
+import { UIManager } from '../systems/UIManager.js';
+import { EffectsSystem } from '../systems/EffectsSystem.js';
+import { AudioSystem } from '../systems/AudioSystem.js';
 
 export class GameManager {
   constructor() {
@@ -16,8 +19,11 @@ export class GameManager {
     this.assetLoader = new AssetLoader();
     this.anchors = [];
     this.enemySystem = null;
+    this.uiManager = new UIManager(this);
     this.economySystem = new EconomySystem();
     this.healthSystem = new HealthSystem();
+    this.effectsSystem = new EffectsSystem();
+    this.audioSystem = new AudioSystem();
     this.towerSystem = null;
     this.lastTime = 0;
     this.headOccluder = null;
@@ -45,10 +51,19 @@ export class GameManager {
     await this.setupHeadOccluder();
 
     // Tower System Setup
-    this.towerSystem = new TowerSystem(this.scene, this.headOccluder, this.economySystem);
+    this.towerSystem = new TowerSystem(this.scene, this.headOccluder, this.economySystem, this.audioSystem);
+
+    // Pre-create anchors for strategic landmarks to avoid performance spikes
+    [...this.towerSystem.PLACEABLE_LANDMARKS, 168, 1, 13].forEach(index => {
+        this.getLandmarkWorldPosition(index);
+    });
 
     // Story B.1: Enemy System Setup
-    this.enemySystem = new EnemySystem(this.scene, this.headOccluder, this.assetLoader, this.healthSystem, this.economySystem);
+    this.enemySystem = new EnemySystem(this.scene, this.headOccluder, this.assetLoader, this.healthSystem, this.economySystem, this.audioSystem, this.uiManager);
+
+    // Connect systems to UI/Audio
+    this.economySystem.setUIManager(this.uiManager);
+    this.healthSystem.setManagers(this.uiManager, this.audioSystem);
 
     // Setup input
     this.setupInputHandlers();
@@ -80,23 +95,12 @@ export class GameManager {
   handlePlacement(x, y) {
     if (this.healthSystem.isGameOver) return;
 
-    // Get current landmarks for snapping
-    const landmarks = this.mindarThree.controller.getLandmarks();
-    if (!landmarks) return;
-
-    // Convert landmark positions to world coordinates
-    const landmarkPositions = landmarks.map((l, i) => {
-        // MindAR landmarks are in a different coordinate system, but MindARThree provides helper
-        // Actually we need the actual world position.
-        // mindarThree.addAnchor(i) creates a group that follows the landmark.
-        // For efficiency, we can use the controller's methods if we had a direct reference to the camera params.
-        // Alternatively, we use the anchors we already have or create them on the fly.
-
-        // Simpler approach for MVP: MindAR landmarks in controller are already somewhat normalized.
-        // But for raycast hitting headOccluder, we just need to snap to the nearest landmark index.
-        // We can get the world position by creating a temporary anchor if needed,
-        // or using the faceMesh which follows the landmarks.
-        return { index: i, position: this.getLandmarkWorldPosition(i) };
+    // Convert strategic landmark positions to world coordinates
+    const landmarkPositions = this.towerSystem.PLACEABLE_LANDMARKS.map(index => {
+        return {
+            index: index,
+            position: this.getLandmarkWorldPosition(index)
+        };
     });
 
     this.towerSystem.placeTower(this.selectedTowerType, x, y, this.camera, landmarkPositions);
@@ -140,7 +144,8 @@ export class GameManager {
       this.lastTime = performance.now();
       this.renderer.setAnimationLoop(this.update.bind(this));
       console.log("MindAR started successfully");
-      document.querySelector("#loading-screen").style.display = "none";
+      this.uiManager.hideLoadingScreen();
+      this.uiManager.showMessage("NEURAL DEFENSE ONLINE");
     } catch (error) {
       console.error("AR Start failed:", error);
       this.showError("Failed to start AR. Please ensure camera access is granted.");
@@ -174,6 +179,10 @@ export class GameManager {
 
     if (this.towerSystem) {
         this.towerSystem.update(deltaTime, this.enemySystem.enemies, currentTime);
+    }
+
+    if (this.effectsSystem) {
+      this.effectsSystem.update(this.healthSystem);
     }
 
     this.renderer.render(this.scene, this.camera);

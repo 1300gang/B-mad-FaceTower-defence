@@ -3,10 +3,11 @@ import { Tower, TowerType, TOWER_STATS } from '../core/Tower.js';
 import { Projectile } from '../core/Projectile.js';
 
 export class TowerSystem {
-  constructor(scene, headOccluder, economySystem) {
+  constructor(scene, headOccluder, economySystem, audioSystem) {
     this.scene = scene;
     this.headOccluder = headOccluder;
     this.economySystem = economySystem;
+    this.audioSystem = audioSystem;
     this.towers = [];
     this.projectiles = [];
     this.occupiedLandmarks = new Set();
@@ -50,6 +51,8 @@ export class TowerSystem {
     const tower = new Tower(type, nearest.index, mesh);
     this.towers.push(tower);
     this.occupiedLandmarks.add(nearest.index);
+
+    if (this.audioSystem) this.audioSystem.play('towerPlace');
 
     return tower;
   }
@@ -129,6 +132,8 @@ export class TowerSystem {
     );
     this.scene.add(projectile.mesh);
     this.projectiles.push(projectile);
+
+    if (this.audioSystem) this.audioSystem.play('towerFire', 0.5);
   }
 
   removeProjectile(index) {

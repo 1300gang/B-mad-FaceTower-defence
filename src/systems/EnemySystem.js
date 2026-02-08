@@ -3,12 +3,14 @@ import { Enemy } from '../core/Enemy.js';
 import { EnemyType, ENEMY_STATS, WAVES } from '../utils/EnemyTypes.js';
 
 export class EnemySystem {
-  constructor(scene, headOccluder, assetLoader, healthSystem, economySystem) {
+  constructor(scene, headOccluder, assetLoader, healthSystem, economySystem, audioSystem, uiManager) {
     this.scene = scene;
     this.headOccluder = headOccluder;
     this.assetLoader = assetLoader;
     this.healthSystem = healthSystem;
     this.economySystem = economySystem;
+    this.audioSystem = audioSystem;
+    this.uiManager = uiManager;
     this.enemies = [];
 
     this.currentWaveIndex = 0;
@@ -21,13 +23,14 @@ export class EnemySystem {
 
   async startNextWave() {
     if (this.currentWaveIndex >= WAVES.length) {
-      console.log("All waves completed!");
+      if (this.uiManager) this.uiManager.showMessage("ALL THREATS NEUTRALIZED");
       return;
     }
 
     this.spawnedInWave = 0;
     this.isWaveActive = true;
-    console.log(`Starting Wave ${WAVES[this.currentWaveIndex].wave}`);
+    const waveNum = WAVES[this.currentWaveIndex].wave;
+    if (this.uiManager) this.uiManager.showMessage(`INCOMING WAVE ${waveNum}`);
   }
 
   async spawn(type) {
@@ -89,26 +92,33 @@ export class EnemySystem {
     const currentWave = WAVES[this.currentWaveIndex];
     this.spawnTimer += deltaTime;
 
-    // Simplified wave spawning logic for the MVP
-    // We'll just spawn the first type defined in the wave for now, or loop through them
-    let allSpawned = true;
-    for (const waveConfig of currentWave.enemies) {
-      const totalToSpawn = waveConfig.count;
-      // This is a bit naive, but works for sequential spawning
-      if (this.spawnedInWave < totalToSpawn) {
-        if (this.spawnTimer >= waveConfig.interval) {
-          this.spawn(waveConfig.type);
-          this.spawnedInWave++;
-          this.spawnTimer = 0;
-        }
-        allSpawned = false;
+    // Enhanced wave spawning logic
+    let currentWaveTypeIndex = 0;
+    let countBeforeCurrent = 0;
+
+    // Find which enemy type in the wave we should be spawning now
+    for (let i = 0; i < currentWave.enemies.length; i++) {
+      const waveConfig = currentWave.enemies[i];
+      if (this.spawnedInWave < countBeforeCurrent + waveConfig.count) {
+        currentWaveTypeIndex = i;
         break;
+      }
+      countBeforeCurrent += waveConfig.count;
+      if (i === currentWave.enemies.length - 1) {
+        // All types in this wave finished spawning
+        this.isWaveActive = false;
+        this.currentWaveIndex++;
+        return;
       }
     }
 
-    if (allSpawned) {
-      this.isWaveActive = false;
-      this.currentWaveIndex++;
+    const currentTypeConfig = currentWave.enemies[currentWaveTypeIndex];
+    this.spawnTimer += deltaTime;
+
+    if (this.spawnTimer >= currentTypeConfig.interval) {
+      this.spawn(currentTypeConfig.type);
+      this.spawnedInWave++;
+      this.spawnTimer = 0;
     }
   }
 
@@ -143,6 +153,7 @@ export class EnemySystem {
 
       if (enemy.isDead()) {
         this.economySystem.earn(ENEMY_STATS[enemy.type].reward);
+        if (this.audioSystem) this.audioSystem.play('enemyDeath');
         this.removeEnemy(enemy.id);
       }
     }

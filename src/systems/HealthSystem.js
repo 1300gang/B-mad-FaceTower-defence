@@ -8,6 +8,14 @@ export class HealthSystem {
       mouth: new VitalOrgan('MOUTH', 15, null)
     };
     this.isGameOver = false;
+    this.uiManager = null;
+    this.audioSystem = null;
+  }
+
+  setManagers(uiManager, audioSystem) {
+    this.uiManager = uiManager;
+    this.audioSystem = audioSystem;
+    this.updateUI();
   }
 
   // Position needs to be updated once landmarks are available/updated
@@ -23,6 +31,7 @@ export class HealthSystem {
     if (organ) {
       organ.takeDamage(amount);
       this.updateUI();
+      if (this.audioSystem) this.audioSystem.play('organDamage');
       this.checkGameOver();
     }
   }
@@ -35,19 +44,17 @@ export class HealthSystem {
   }
 
   triggerGameOver() {
-    console.log("GAME OVER");
-    const gameOverScreen = document.getElementById('game-over-screen');
-    if (gameOverScreen) {
-      gameOverScreen.style.display = 'flex';
+    if (this.uiManager) {
+      this.uiManager.showGameOver();
     }
+    if (this.audioSystem) this.audioSystem.play('gameOver');
   }
 
   updateUI() {
-    for (const [name, organ] of Object.entries(this.organs)) {
-      const bar = document.getElementById(`${name}-bar`);
-      const text = document.getElementById(`${name}-text`);
-      if (bar) bar.style.width = `${organ.getHealthPercentage()}%`;
-      if (text) text.textContent = `${organ.currentHP}/${organ.maxHP}`;
+    if (this.uiManager) {
+      for (const [name, organ] of Object.entries(this.organs)) {
+        this.uiManager.updateHealth(name, organ.currentHP, organ.maxHP);
+      }
     }
   }
 }

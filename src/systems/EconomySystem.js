@@ -1,6 +1,12 @@
 export class EconomySystem {
   constructor(initialGold = 50) {
     this.gold = initialGold;
+    this.uiManager = null;
+  }
+
+  setUIManager(uiManager) {
+    this.uiManager = uiManager;
+    this.updateUI();
   }
 
   canAfford(cost) {
@@ -22,9 +28,8 @@ export class EconomySystem {
   }
 
   updateUI() {
-    const goldElement = document.getElementById('gold-count');
-    if (goldElement) {
-      goldElement.innerText = this.gold;
+    if (this.uiManager) {
+      this.uiManager.updateGold(this.gold);
     }
   }
 }
