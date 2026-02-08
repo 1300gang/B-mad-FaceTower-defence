@@ -22,8 +22,9 @@
   },
   "homepage": "https://github.com/1300gang/B-mad-FaceTower-defence#readme",
   "dependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.1.4",
     "mind-ar": "^1.2.5",
-    "three": "^0.151.0",
+    "three": "^0.160.0",
     "vite": "^7.3.1"
   }
 }
