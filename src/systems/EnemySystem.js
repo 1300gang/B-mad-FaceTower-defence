@@ -3,10 +3,12 @@ import { Enemy } from '../core/Enemy.js';
 import { EnemyType, ENEMY_STATS, WAVES } from '../utils/EnemyTypes.js';
 
 export class EnemySystem {
-  constructor(scene, headOccluder, assetLoader) {
+  constructor(scene, headOccluder, assetLoader, healthSystem, economySystem) {
     this.scene = scene;
     this.headOccluder = headOccluder;
     this.assetLoader = assetLoader;
+    this.healthSystem = healthSystem;
+    this.economySystem = economySystem;
     this.enemies = [];
 
     this.currentWaveIndex = 0;
@@ -118,23 +120,57 @@ export class EnemySystem {
         enemy.mixer.update(deltaTime);
       }
 
+      // Assign target organ if none
+      if (!enemy.targetOrgan) {
+        enemy.targetOrgan = this.assignTargetOrgan(enemy);
+      }
+
       if (enemy.type === EnemyType.FLYER) {
         this.updateFlyer(enemy, deltaTime);
       } else {
         this.updateCrawler(enemy, deltaTime);
       }
 
-      // Progress towards center
-      const dist = enemy.mesh.position.length();
-      if (dist < 0.05) {
-        // Hit a vital organ / reached center
+      // Check collision with target organ
+      if (enemy.targetOrgan && enemy.targetOrgan.position) {
+        const dist = enemy.mesh.position.distanceTo(enemy.targetOrgan.position);
+        if (dist < 0.05) {
+          this.healthSystem.damageOrgan(enemy.targetOrgan.name, 1);
+          this.removeEnemy(enemy.id);
+          continue;
+        }
+      }
+
+      if (enemy.isDead()) {
+        this.economySystem.earn(ENEMY_STATS[enemy.type].reward);
         this.removeEnemy(enemy.id);
       }
     }
   }
 
+  assignTargetOrgan(enemy) {
+    const organs = this.healthSystem.organs;
+    if (enemy.type === EnemyType.FLYER) return organs.eyes;
+    if (enemy.type === EnemyType.TANK) return organs.mouth;
+
+    // Nearest for crawler
+    let nearest = organs.nose;
+    let minDist = Infinity;
+    for (const organ of Object.values(organs)) {
+      if (organ.isDestroyed || !organ.position) continue;
+      const dist = enemy.mesh.position.distanceTo(organ.position);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = organ;
+      }
+    }
+    return nearest;
+  }
+
   updateCrawler(enemy, deltaTime) {
-    const target = new THREE.Vector3(0, 0, 0.1); // Move toward front of face
+    if (!enemy.targetOrgan || !enemy.targetOrgan.position) return;
+
+    const target = enemy.targetOrgan.position;
     const direction = target.clone().sub(enemy.mesh.position).normalize();
 
     const nextPos = enemy.mesh.position.clone().add(direction.multiplyScalar(enemy.speed * deltaTime));
@@ -142,7 +178,6 @@ export class EnemySystem {
     const clampedPos = this.clampToSurface(nextPos);
     enemy.mesh.position.copy(clampedPos);
 
-    // Rotate to face direction or normal
     enemy.mesh.lookAt(target);
   }
 

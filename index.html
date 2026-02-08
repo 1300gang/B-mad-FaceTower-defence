@@ -54,7 +54,45 @@
         <p>Initializing Neural Defense Systems...</p>
     </div>
     <div id="ui-overlay">
-        <div id="game-ui"></div>
+        <div id="gold-display" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; pointer-events: auto;">
+            Gold: <span id="gold-count">50</span>
+        </div>
+
+        <div id="health-ui" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; pointer-events: auto;">
+            <div class="organ-health">
+                <span>👁️ Eyes:</span>
+                <div class="health-bar" style="width: 100px; height: 10px; background: #333; display: inline-block; margin: 0 5px;">
+                    <div id="eyes-bar" style="height: 100%; background: #00ff00; width: 100%;"></div>
+                </div>
+                <span id="eyes-text" style="font-size: 10px;">10/10</span>
+            </div>
+            <div class="organ-health">
+                <span>👃 Nose:</span>
+                <div class="health-bar" style="width: 100px; height: 10px; background: #333; display: inline-block; margin: 0 5px;">
+                    <div id="nose-bar" style="height: 100%; background: #00ff00; width: 100%;"></div>
+                </div>
+                <span id="nose-text" style="font-size: 10px;">7/7</span>
+            </div>
+            <div class="organ-health">
+                <span>👄 Mouth:</span>
+                <div class="health-bar" style="width: 100px; height: 10px; background: #333; display: inline-block; margin: 0 5px;">
+                    <div id="mouth-bar" style="height: 100%; background: #00ff00; width: 100%;"></div>
+                </div>
+                <span id="mouth-text" style="font-size: 10px;">15/15</span>
+            </div>
+        </div>
+
+        <div id="tower-selection" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto;">
+            <button class="tower-btn selected" data-type="GREEN" style="padding: 10px; background: #00ff00; border: none; border-radius: 5px;">Green (20G)</button>
+            <button class="tower-btn" data-type="RED" style="padding: 10px; background: #ff0000; border: none; border-radius: 5px; color: white;">Red (30G)</button>
+            <button class="tower-btn" data-type="BLUE" style="padding: 10px; background: #0000ff; border: none; border-radius: 5px; color: white;">Blue (40G)</button>
+        </div>
+    </div>
+
+    <div id="game-over-screen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 300; color: white;">
+        <h1>SYSTEM FAILURE</h1>
+        <p>Vital organs compromised.</p>
+        <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 20px; background: #00ff00; border: none; border-radius: 5px; cursor: pointer;">REBOOT SYSTEM</button>
     </div>
     <script type="module" src="/src/main.js"></script>
 </body>
