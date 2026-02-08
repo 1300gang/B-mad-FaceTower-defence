@@ -40,6 +40,10 @@ export class GameManager {
     this.camera = camera;
     this.renderer = renderer;
 
+    if (this.renderer.outputEncoding !== undefined) {
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    }
+
     const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
     this.scene.add(light);
 
@@ -163,15 +167,13 @@ export class GameManager {
     this.lastTime = currentTime;
 
     // Update health system with landmark positions for organs
-    const landmarks = this.mindarThree.controller.getLandmarks();
-    if (landmarks) {
-        const organPositions = {
-            168: { position: this.getLandmarkWorldPosition(168) },
-            1: { position: this.getLandmarkWorldPosition(1) },
-            13: { position: this.getLandmarkWorldPosition(13) }
-        };
-        this.healthSystem.updateOrganPositions(organPositions);
-    }
+    // landmarks are updated automatically by MindAR anchors
+    const organPositions = {
+        168: { position: this.getLandmarkWorldPosition(168) },
+        1: { position: this.getLandmarkWorldPosition(1) },
+        13: { position: this.getLandmarkWorldPosition(13) }
+    };
+    this.healthSystem.updateOrganPositions(organPositions);
 
     if (this.enemySystem) {
       this.enemySystem.update(deltaTime);

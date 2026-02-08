@@ -17,6 +17,16 @@ export class AssetLoader {
   async loadGLB(path) {
     if (this.cache.has(path)) return this.cache.get(path).clone();
 
+    // First, check if the file exists to avoid GLTFLoader parsing 404 HTML as JSON
+    try {
+      const response = await fetch(path, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Asset not found: ${path}`);
+      }
+    } catch (e) {
+      throw new Error(`Failed to reach asset: ${path}`);
+    }
+
     return new Promise((resolve, reject) => {
       this.gltfLoader.load(
         path,
@@ -24,9 +34,7 @@ export class AssetLoader {
           this.cache.set(path, gltf.scene);
           resolve(gltf.scene.clone());
         },
-        (xhr) => {
-          // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-        },
+        null,
         (error) => {
           console.error('Error loading GLB:', path, error);
           reject(error);
